@@ -1,0 +1,189 @@
+{
+  "name": "Inventory Management",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -80,
+        128
+      ],
+      "id": "72c043c0-521f-48c1-bf69-f274161a7e29",
+      "name": "When chat message received",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an AI assistant managing a McDonald's Google Sheets inventory system.\n\nYou have two tools:\n- Inventory Viewer – check product info, quantity, and row number\n- Inventory Updater – update quantity in the sheet\n\nYOUR RESPONSIBILITIES:\nUnderstand the user message, identify the product and quantity, \nand take action immediately without asking unnecessary questions.\n\nRULES:\n\n1. CHECK stock → use Inventory Viewer with product_name only.\n\n2. ADD stock →\n   - Use Inventory Viewer to get current quantity and row number\n   - Calculate: new_quantity = current_quantity + added_quantity\n   - Use Inventory Updater with row_number and new_quantity\n\n3. REDUCE stock →\n   - Use Inventory Viewer to get current quantity and row number\n   - Calculate: new_quantity = current_quantity - sold_quantity\n   - Use Inventory Updater with row_number and new_quantity\n\nSTRICT RULES:\n- ONLY ask for product_name and quantity. NOTHING else.\n- NEVER ask for Item ID, Category, Supplier, Unit, Reorder Level,\n  Unit Cost, Total Value, Dates, or Storage Location.\n- NEVER ask for clarification if product name and quantity are clear.\n- Always calculate the final quantity BEFORE calling Inventory Updater.\n- If stock would go below 0, warn the user and do not update.\n- If product is not found, respond: \"Product not found in inventory.\"\n\nEXAMPLES:\nUser: \"Add 100 to Beef Patty\"\n→ Viewer finds Beef Patty (row 2, qty 120) → new_qty = 220 → Updater sets row 2 to 220\n\nUser: \"Sold 30 Chicken Patty\"\n→ Viewer finds Chicken Patty (row 3, qty 90) → new_qty = 60 → Updater sets row 3 to 60\n\nUser: \"How many Burger Buns left?\"\n→ Viewer returns current quantity → reply to user\n\nUser: \"add more 100 to Beef Patty\"\n→ Treat as ADD operation. Do not ask any questions."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        128,
+        128
+      ],
+      "id": "3f16a158-c452-460a-b988-c1b34ab9bda2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        0,
+        336
+      ],
+      "id": "ff029612-c05d-4901-b5c0-69cb342fcb7b",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "McDonalds_Inventory_Dummy_Data",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_GID",
+          "mode": "list",
+          "cachedResultName": "Main",
+          "cachedResultUrl": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        336,
+        384
+      ],
+      "id": "08cf0058-e2ee-4b4f-8fde-d2dd61952167",
+      "name": "Inventory"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "McDonalds_Inventory_Dummy_Data",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_GID",
+          "mode": "list",
+          "cachedResultName": "Main",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Item Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Item_Name', ``, 'string') }}",
+            "Quantity In Stock": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Quantity_In_Stock', ``, 'number') }}"
+          },
+          "matchingColumns": [
+            "Item Name"
+          ],
+          "schema": [
+            {
+              "id": "Item Name",
+              "displayName": "Item Name",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantity In Stock",
+              "displayName": "Quantity In Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        496,
+        384
+      ],
+      "id": "ea323565-d5ee-4938-baf3-7c0673c70588",
+      "name": "Inventory Updater"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inventory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inventory Updater": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
